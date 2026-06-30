@@ -29,4 +29,4 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
   
 ## 🔌 Wiring Diagram
 
-![Circuit Diagram Using TinkerCad](TinkerCad.jpg)
+![Circuit Diagram Using TinkerCad](images/TinkerCad.jpg)

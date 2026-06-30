@@ -26,3 +26,7 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 - Real-time sensor scanning
 - Integrating multiple peripherals
 - Debugging hardware and software together
+  
+## 🔌 Wiring Diagram
+
+![Circuit Diagram Using TinkerCad](TinkerCad.jpg)

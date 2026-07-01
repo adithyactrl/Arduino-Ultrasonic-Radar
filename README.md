@@ -13,7 +13,7 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 - 🟢 Green LED indicates a safe distance
 - 🔴 Red LED indicates a nearby obstacle
 - 🔊 Audible proximity alerts using a buzzer
-- - 📡 Real-time HTML dashboard displaying live sensor data and visualizing object movement
+- 📡 Real-time HTML dashboard displaying live sensor data and visualizing object movement
   
 ## Components Used
 - Arduino Uno

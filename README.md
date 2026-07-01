@@ -34,7 +34,7 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 | Red LED         | D5          | 
 | Buzzer          | D3          |
 | LCD(SDA)        | A4          |
-| LCD(SDL)        | A5          |  
+| LCD(SCL)        | A5          |  
 
 ## What I Learned
 - Servo motor control using PWM

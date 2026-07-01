@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Live Monitor</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#050f08;display:flex;justify-content:center;padding:20px;min-height:100vh}
+  :root{
+    --dark-bg:#0a1a0f;--panel-bg:#0d2010;--card-bg:#102614;--border-g:#1a4020;
+    --green-bright:#00ff6a;--green-mid:#00cc55;--green-dim:#008833;
+    --red-bright:#ff2244;--amber-bright:#ffaa00;
+    --text-primary:#c8ffdc;--text-secondary:#5caa70;--text-muted:#2a5c35;
+  }
+  #app{background:var(--dark-bg);width:100%;max-width:760px;border-radius:14px;overflow:hidden;color:var(--text-primary);border:1px solid var(--border-g);box-shadow:0 0 40px rgba(0,255,106,0.07)}
+
+  /* HEADER */
+  .header{background:var(--panel-bg);border-bottom:1px solid var(--border-g);padding:14px 20px;display:flex;align-items:center;gap:12px}
+  .header-title{font-size:15px;font-weight:700;color:var(--green-bright);letter-spacing:.08em;text-transform:uppercase}
+  .header-sub{font-size:11px;color:var(--text-secondary)}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#334;flex-shrink:0;transition:background .3s,box-shadow .3s}
+  .status-dot.live{background:var(--green-bright);box-shadow:0 0 6px var(--green-bright);animation:pdot 1.2s ease-in-out infinite}
+  .status-dot.danger{background:var(--red-bright);box-shadow:0 0 8px var(--red-bright);animation:pdot .5s ease-in-out infinite}
+  .status-dot.warning{background:var(--amber-bright);box-shadow:0 0 6px var(--amber-bright);animation:pdot .8s ease-in-out infinite}
+  @keyframes pdot{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* CONNECT BAR */
+  .connect-bar{padding:12px 20px;background:var(--panel-bg);border-bottom:1px solid var(--border-g);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .conn-btn{padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all .2s;letter-spacing:.05em}
+  .conn-btn.connect{background:rgba(0,255,106,0.15);color:var(--green-bright);border:1px solid rgba(0,255,106,0.4)}
+  .conn-btn.connect:hover{background:rgba(0,255,106,0.25)}
+  .conn-btn.disconnect{background:rgba(255,34,68,0.12);color:var(--red-bright);border:1px solid rgba(255,34,68,0.35)}
+  .conn-btn.disconnect:hover{background:rgba(255,34,68,0.22)}
+  .baud-select{background:var(--card-bg);color:var(--text-secondary);border:1px solid var(--border-g);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;cursor:pointer}
+  .conn-status{font-size:11px;color:var(--text-muted);margin-left:auto}
+  .conn-status.live{color:var(--green-bright)}
+  .conn-status.error{color:var(--red-bright)}
+  .no-support{font-size:12px;color:var(--red-bright);padding:6px 10px;background:rgba(255,34,68,0.1);border-radius:6px;border:1px solid rgba(255,34,68,0.3);display:none}
+
+  /* MAIN GRID */
+  .main-grid{display:grid;grid-template-columns:1fr 260px}
+  .radar-section{padding:16px;border-right:1px solid var(--border-g);display:flex;flex-direction:column;align-items:center}
+  #radarCanvas{border-radius:8px;display:block;max-width:100%}
+
+  /* SIDE PANEL */
+  .side-panel{display:flex;flex-direction:column}
+  .metric-card{padding:16px;border-bottom:1px solid var(--border-g);background:var(--card-bg)}
+  .metric-label{font-size:10px;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .metric-value{font-size:28px;font-weight:700;line-height:1;color:var(--green-bright);font-variant-numeric:tabular-nums}
+  .metric-unit{font-size:12px;color:var(--text-secondary);margin-left:4px;font-weight:400}
+  .metric-value.danger{color:var(--red-bright);text-shadow:0 0 10px var(--red-bright)}
+  .metric-value.warning{color:var(--amber-bright);text-shadow:0 0 10px var(--amber-bright)}
+  .metric-value.safe{color:var(--green-bright);text-shadow:0 0 8px var(--green-bright)}
+
+  .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-top:8px}
+  .status-badge.safe{background:rgba(0,255,106,.12);color:var(--green-bright);border:1px solid rgba(0,255,106,.3)}
+  .status-badge.warning{background:rgba(255,170,0,.12);color:var(--amber-bright);border:1px solid rgba(255,170,0,.3)}
+  .status-badge.danger{background:rgba(255,34,68,.12);color:var(--red-bright);border:1px solid rgba(255,34,68,.3);animation:blink .5s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+  .badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  .bar-section{padding:16px;border-bottom:1px solid var(--border-g);background:var(--card-bg)}
+  .bar-title{font-size:10px;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+  .bar-track{height:18px;border-radius:9px;background:var(--panel-bg);border:1px solid var(--border-g);overflow:hidden;margin-bottom:6px}
+  .bar-fill-safe{height:100%;background:linear-gradient(90deg,#005522,#00cc55);transition:width .5s ease;border-radius:9px}
+  .bar-fill-danger{height:100%;background:linear-gradient(90deg,#880011,#ff2244);transition:width .5s ease;border-radius:9px}
+  .bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary)}
+  .bar-pct{font-size:12px;font-weight:600}
+  .bar-pct.safe{color:var(--green-mid)}
+  .bar-pct.danger{color:var(--red-bright)}
+
+  .detections-card{padding:14px 16px;background:var(--card-bg);flex:1}
+  .det-title{font-size:10px;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .det-list{display:flex;flex-direction:column;gap:5px}
+  .det-item{display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid transparent}
+  .det-item.safe{background:rgba(0,136,51,.12);border-color:rgba(0,136,51,.25);color:var(--green-mid)}
+  .det-item.warn{background:rgba(255,170,0,.10);border-color:rgba(255,170,0,.25);color:var(--amber-bright)}
+  .det-item.danger{background:rgba(255,34,68,.10);border-color:rgba(255,34,68,.25);color:var(--red-bright)}
+
+  /* FOOTER */
+  .footer-bar{padding:10px 20px;background:var(--panel-bg);border-top:1px solid var(--border-g);display:flex;justify-content:space-between;align-items:center}
+  .footer-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .footer-num{font-size:15px;font-weight:700;color:var(--green-bright)}
+  .footer-lbl{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+  .footer-num.danger{color:var(--red-bright)}
+  .footer-num.warn{color:var(--amber-bright)}
+
+  /* RAW LOG */
+  .raw-log-card{padding:10px 16px;background:#080f09;border-top:1px solid var(--border-g)}
+  .raw-title{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+  #rawLog{font-family:monospace;font-size:10px;color:#2a7a40;height:56px;overflow-y:auto;line-height:1.6}
+
+  @media(max-width:600px){
+    .main-grid{grid-template-columns:1fr}
+    .radar-section{border-right:none;border-bottom:1px solid var(--border-g)}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="status-dot" id="statusDot"></div>
+    <div>
+      <div class="header-title">Radar Live Monitor</div>
+      <div class="header-sub">Web Serial API &middot; Format: ANGLE,DISTANCE over Serial</div>
+    </div>
+  </div>
+
+  <!-- CONNECT BAR -->
+  <div class="connect-bar">
+    <span class="no-support" id="noSupport">&#9888; Web Serial not supported &mdash; use Chrome or Edge</span>
+    <button class="conn-btn connect" id="connectBtn" onclick="connectSerial()">&#9654; Connect to Port</button>
+    <button class="conn-btn disconnect" id="disconnectBtn" onclick="disconnectSerial()" style="display:none">&#9632; Disconnect</button>
+    <select class="baud-select" id="baudSelect">
+      <option value="9600" selected>9600 baud</option>
+      <option value="19200">19200 baud</option>
+      <option value="38400">38400 baud</option>
+      <option value="57600">57600 baud</option>
+      <option value="115200">115200 baud</option>
+    </select>
+    <span class="conn-status" id="connStatus">Not connected</span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-grid">
+    <div class="radar-section">
+      <canvas id="radarCanvas" width="420" height="240"></canvas>
+    </div>
+    <div class="side-panel">
+      <div class="metric-card">
+        <div class="metric-label">Distance</div>
+        <div class="metric-value safe" id="distVal">---<span class="metric-unit">cm</span></div>
+        <div id="statusBadge" class="status-badge safe">
+          <span class="badge-dot"></span>
+          <span id="statusText">Waiting...</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Servo Angle</div>
+        <div class="metric-value safe" id="angleVal" style="font-size:22px">0&deg;</div>
+      </div>
+      <div class="bar-section">
+        <div class="bar-title">Safety Level</div>
+        <div class="bar-track"><div class="bar-fill-safe" id="safeBar" style="width:100%"></div></div>
+        <div class="bar-labels">
+          <span class="bar-pct safe" id="safePct">100% safe</span>
+          <span style="color:var(--green-dim)">SAFE</span>
+        </div>
+        <div style="margin-top:8px">
+          <div class="bar-track"><div class="bar-fill-danger" id="dangerBar" style="width:0%"></div></div>
+          <div class="bar-labels">
+            <span class="bar-pct danger" id="dangerPct">0% danger</span>
+            <span style="color:#550011">DANGER</span>
+          </div>
+        </div>
+      </div>
+      <div class="detections-card">
+        <div class="det-title">Recent Detections</div>
+        <div class="det-list" id="detList">
+          <div style="font-size:11px;color:var(--text-muted)">Connect to start...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAW LOG -->
+  <div class="raw-log-card">
+    <div class="raw-title">&#9654; Serial raw log</div>
+    <div id="rawLog"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div class="footer-stat"><div class="footer-num" id="totalScans">0</div><div class="footer-lbl">Total scans</div></div>
+    <div class="footer-stat"><div class="footer-num" id="safeScans">0</div><div class="footer-lbl">Safe</div></div>
+    <div class="footer-stat"><div class="footer-num warn" id="warnScans">0</div><div class="footer-lbl">Warning</div></div>
+    <div class="footer-stat"><div class="footer-num danger" id="dangerScans">0</div><div class="footer-lbl">Danger</div></div>
+  </div>
+</div>
+
+<script>
+// ── RADAR CANVAS ──────────────────────────────────────────────
+const canvas = document.getElementById('radarCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const CX = W/2, CY = H-10, R = H-22;
+const GREEN='#00ff6a', RED='#ff2244', AMBER='#ffaa00', GRIDL='#0d3018';
+
+let liveAngle = 0, liveDist = null;
+let detections = [], sweepTrail = [];
+let totalScans=0, safeScans=0, warnScans=0, dangerScans=0;
+
+function getStatus(d){ if(d===null||d===-1||d>50)return'safe'; if(d>30)return'warning'; return'danger'; }
+function distToR(d){ if(d===null||d===-1)return null; return Math.min(d/200,1)*R; }
+
+function drawGrid(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a1a0f'; ctx.fillRect(0,0,W,H);
+  [50,100,150,200].forEach((v,i)=>{
+    const r=(v/200)*R;
+    ctx.beginPath(); ctx.arc(CX,CY,r,Math.PI,0,false);
+    ctx.strokeStyle=i===0?'#1a5528':GRIDL; ctx.lineWidth=i===0?1.5:.7;
+    ctx.setLineDash([4,6]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#1a4020'; ctx.font='9px monospace';
+    ctx.fillText(v+'cm',CX+r+3,CY-3);
+  });
+  [0,30,60,90,120,150,180].forEach(a=>{
+    const rad=(a*Math.PI)/180;
+    const x2=CX+R*Math.cos(Math.PI-rad), y2=CY-R*Math.sin(rad);
+    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(x2,y2);
+    ctx.strokeStyle=GRIDL; ctx.lineWidth=.5; ctx.setLineDash([3,8]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#2a6040'; ctx.font='9px monospace';
+    ctx.fillText(a+'°',CX+(R+12)*Math.cos(Math.PI-rad)-8,CY-(R+12)*Math.sin(rad)+3);
+  });
+  ctx.beginPath(); ctx.moveTo(20,CY); ctx.lineTo(W-20,CY);
+  ctx.strokeStyle='#1a5528'; ctx.lineWidth=1; ctx.stroke();
+}
+
+function drawTrail(){
+  sweepTrail.forEach((t,i)=>{
+    const alpha=(i/sweepTrail.length)*0.35;
+    const rad=(t*Math.PI)/180;
+    ctx.beginPath(); ctx.moveTo(CX,CY);
+    ctx.lineTo(CX+R*Math.cos(Math.PI-rad),CY-R*Math.sin(rad));
+    ctx.strokeStyle=`rgba(0,255,106,${alpha})`; ctx.lineWidth=2; ctx.stroke();
+  });
+}
+
+function drawPoints(){
+  detections.slice(-50).forEach(d=>{
+    const r=distToR(d.dist); if(r===null)return;
+    const rad=(d.angle*Math.PI)/180;
+    const x=CX+r*Math.cos(Math.PI-rad), y=CY-r*Math.sin(rad);
+    const col=d.status==='danger'?RED:d.status==='warning'?AMBER:GREEN;
+    const glow=d.status==='danger'?'rgba(255,34,68,.4)':d.status==='warning'?'rgba(255,170,0,.35)':'rgba(0,255,106,.3)';
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fillStyle=glow; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+  });
+}
+
+function drawSweep(){
+  const rad=(liveAngle*Math.PI)/180;
+  const x2=CX+R*Math.cos(Math.PI-rad), y2=CY-R*Math.sin(rad);
+  const g=ctx.createLinearGradient(CX,CY,x2,y2);
+  g.addColorStop(0,'rgba(0,255,106,.9)'); g.addColorStop(1,'rgba(0,255,106,.05)');
+  ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(x2,y2);
+  ctx.strokeStyle=g; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX,CY,6,0,Math.PI*2); ctx.fillStyle=GREEN; ctx.fill();
+}
+
+function renderFrame(){
+  drawGrid(); drawTrail(); drawPoints(); drawSweep();
+  requestAnimationFrame(renderFrame);
+}
+renderFrame();
+
+// ── PROCESS ONE PARSED LINE FROM ARDUINO ─────────────────────
+function processData(angle, dist){
+  liveAngle = angle;
+  liveDist  = dist;
+
+  sweepTrail.push(angle);
+  if(sweepTrail.length>22) sweepTrail.shift();
+
+  const status = getStatus(dist);
+  totalScans++;
+  if(status==='safe') safeScans++;
+  else if(status==='warning') warnScans++;
+  else dangerScans++;
+
+  if(dist!==-1){
+    detections.push({angle,dist,status});
+    if(detections.length>60) detections.shift();
+    addRow(angle,dist,status);
+  }
+  updatePanel(dist,status);
+}
+
+function updatePanel(dist,status){
+  const dEl=document.getElementById('distVal');
+  dEl.innerHTML=(dist===-1?'---':dist)+'<span class="metric-unit">cm</span>';
+  dEl.className='metric-value '+status;
+  document.getElementById('statusBadge').className='status-badge '+status;
+  document.getElementById('statusText').textContent=status==='safe'?'Safe':status==='warning'?'Warning':'Danger';
+  document.getElementById('angleVal').textContent=Math.round(liveAngle)+'°';
+
+  const dPct=totalScans?Math.round(dangerScans/totalScans*100):0;
+  const wPct=totalScans?Math.round(warnScans/totalScans*100):0;
+  const sPct=100-dPct-wPct;
+  document.getElementById('safeBar').style.width=sPct+'%';
+  document.getElementById('dangerBar').style.width=dPct+'%';
+  document.getElementById('safePct').textContent=sPct+'% safe';
+  document.getElementById('dangerPct').textContent=dPct+'% danger';
+  document.getElementById('totalScans').textContent=totalScans;
+  document.getElementById('safeScans').textContent=safeScans;
+  document.getElementById('warnScans').textContent=warnScans;
+  document.getElementById('dangerScans').textContent=dangerScans;
+
+  const dot=document.getElementById('statusDot');
+  dot.className='status-dot '+status+' live';
+}
+
+function addRow(angle,dist,status){
+  const list=document.getElementById('detList');
+  const cls=status==='danger'?'danger':status==='warning'?'warn':'safe';
+  const label=status==='danger'?'⚠ DANGER':status==='warning'?'~ WARN':'✓ SAFE';
+  const el=document.createElement('div');
+  el.className='det-item '+cls;
+  el.innerHTML='<span>'+label+'</span><span>'+dist+'cm @ '+Math.round(angle)+'°</span>';
+  list.insertBefore(el,list.firstChild);
+  while(list.children.length>6) list.removeChild(list.lastChild);
+}
+
+function appendLog(text){
+  const log=document.getElementById('rawLog');
+  const line=document.createElement('div');
+  line.textContent=text;
+  log.appendChild(line);
+  while(log.children.length>30) log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+
+// ── WEB SERIAL ────────────────────────────────────────────────
+let port=null, reader=null, readLoop=null;
+
+if(!('serial' in navigator)){
+  document.getElementById('noSupport').style.display='block';
+  document.getElementById('connectBtn').disabled=true;
+  document.getElementById('connectBtn').style.opacity='.4';
+}
+
+async function connectSerial(){
+  try{
+    const baud=parseInt(document.getElementById('baudSelect').value);
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:baud});
+
+    document.getElementById('connectBtn').style.display='none';
+    document.getElementById('disconnectBtn').style.display='inline-block';
+    document.getElementById('connStatus').textContent='Connected @ '+baud+' baud';
+    document.getElementById('connStatus').className='conn-status live';
+    document.getElementById('detList').innerHTML='';
+    document.getElementById('statusDot').className='status-dot live';
+
+    // Read loop
+    const decoder=new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    reader=decoder.readable.getReader();
+
+    let buffer='';
+    readLoop=(async()=>{
+      try{
+        while(true){
+          const {value,done}=await reader.read();
+          if(done) break;
+          buffer+=value;
+          const lines=buffer.split('\n');
+          buffer=lines.pop(); // keep incomplete line
+          lines.forEach(line=>{
+            line=line.trim();
+            if(!line) return;
+            appendLog(line);
+            // Expected format: "ANGLE,DISTANCE"
+            const parts=line.split(',');
+            if(parts.length===2){
+              const angle=parseInt(parts[0]);
+              const dist=parseInt(parts[1]);
+              if(!isNaN(angle)&&!isNaN(dist)){
+                processData(angle,dist);
+              }
+            }
+          });
+        }
+      }catch(e){
+        if(e.name!=='AbortError') setStatus('Error: '+e.message,'error');
+      }
+    })();
+
+  }catch(e){
+    if(e.name!=='NotFoundError')
+      setStatus('Failed: '+e.message,'error');
+  }
+}
+
+async function disconnectSerial(){
+  try{
+    if(reader){ await reader.cancel(); reader=null; }
+    if(port){ await port.close(); port=null; }
+  }catch(e){}
+  document.getElementById('connectBtn').style.display='inline-block';
+  document.getElementById('disconnectBtn').style.display='none';
+  document.getElementById('connStatus').textContent='Disconnected';
+  document.getElementById('connStatus').className='conn-status';
+  document.getElementById('statusDot').className='status-dot';
+}
+
+function setStatus(msg,type){
+  const el=document.getElementById('connStatus');
+  el.textContent=msg; el.className='conn-status '+(type||'');
+}
+</script>
+</body>
+</html>

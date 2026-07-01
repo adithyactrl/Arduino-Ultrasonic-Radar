@@ -23,6 +23,7 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 - Jumper Wires
 - USB Cable
 - LED's
+- Capacitor Which Reduces The Noise From The Servo 
 
 ## Software
 

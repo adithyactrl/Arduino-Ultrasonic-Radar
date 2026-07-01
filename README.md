@@ -55,4 +55,4 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 ![Circuit Diagram Using TinkerCad](images/UPDATEIMAGE.png)
 
 ## HTML
-- 💻 Source: [Radar Live HTML](frontend/radar_live.html)
+- 💻 Source   : [Radar Live HTML](frontend/radar_live.html)

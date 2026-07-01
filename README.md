@@ -2,9 +2,9 @@
 
 A real-time obstacle detection system built using an Arduino Uno, HC-SR04 ultrasonic sensor, and SG90 servo motor.
 
-The servo continuously sweeps the ultrasonic sensor across an angle, allowing the system to scan its surroundings and detect objects at different positions.
+The servo continuously sweeps the ultrasonic sensor across an angle, allowing the system to scan its surroundings and detect objects at different positions
 
- ## Features
+## Features
  
 - 📡 Real-time obstacle detection using the HC-SR04 ultrasonic sensor
 - 🔄 180° servo-based radar scanning
@@ -13,6 +13,7 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 - 🟢 Green LED indicates a safe distance
 - 🔴 Red LED indicates a nearby obstacle
 - 🔊 Audible proximity alerts using a buzzer
+- - 📡 Real-time HTML dashboard displaying live sensor data and visualizing object movement
   
 ## Components Used
 - Arduino Uno
@@ -22,7 +23,12 @@ The servo continuously sweeps the ultrasonic sensor across an angle, allowing th
 - Jumper Wires
 - USB Cable
 - LED's
-  
+
+## Software
+
+- Arduino IDE
+- HTML/CSS/JavaScript Dashboard
+
 ## Pin Connections
 
 | Component       | Arduino Pin |
